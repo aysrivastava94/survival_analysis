@@ -5,8 +5,11 @@
 # Purpose - Initial set up of RStudio for the project
 # Date created - 26-Nov-2023
 
-""" Notes
+"""
+Notes
 Data Source: https://github.com/lbraglia/suanselete3/tree/master
+Theory: https://www.emilyzabor.com/tutorials/survival_analysis_in_r_tutorial.html
+Code Guidance: http://www.sthda.com/english/wiki/survival-analysis-basics
 Data Name  : Addict
 
 Description (as lifted from the file)
@@ -23,7 +26,15 @@ Description (as lifted from the file)
         4 = survival time (days)
         5 = prison record?
         6 = methodone dose (mg/day)
+        
+KM Plot Interpretation:
+The horizontal axis (x-axis) represents time in days, and the vertical axis 
+(y-axis) shows the probability of surviving or the proportion of people 
+surviving. The lines represent survival curves of the two groups. A vertical 
+drop in the curves indicates an event. The vertical tick mark on the curves 
+means that a patient was censored at this time.
 """
+
 ## ---------------------------
 
 options(scipen = 6, digits = 4) # I prefer to view outputs in non-scientific notation
@@ -92,6 +103,9 @@ print(fit_1)
 ## Summary of the model - Prints the entire life table
 summary(fit_1)
 
+## Summary of the model - Prints the summary of life table
+summary(fit_1)$table
+
 ## Creating a dataframe of the result
 d <- data.frame(time      = fit_1$time,
                 n.risk    = fit_1$n.risk,
@@ -126,6 +140,9 @@ print(fit_2)
 
 ## Summary of the model - Prints the entire life table
 summary(fit_2)
+
+## Summary of the model - Prints the summary of life table
+summary(fit_2)$table
 
 ## Structure of the survival object
 str(fit_2)
@@ -162,7 +179,85 @@ ggsurvplot(fit_2,
 )
 
 
+## Log-Rank Test comparing survival curves
+survdiff(Surv(survt, status) ~ clinic, data = addicts)
 
 
+## ---------------------------------------------------------------------
+
+## Building third curve
+### Stratify by clinic
+fit_3 <- survfit(Surv(survt, status) ~ clinic + prison, data = addicts)
+
+## Key results of the model
+print(fit_3)
+
+## Summary of the model - Prints the entire life table
+summary(fit_3)
+
+## Summary of the model - Prints the summary of life table
+summary(fit_3)$table
+
+## Structure of the survival object
+str(fit_3)
+
+## Getting the names of the strata
+names(fit_3$strata)
+### Couldn't figure out how to map strata name to the value
+
+## Creating a dataframe of the result
+"""
+lifetable_3 <- data.frame(time      = fit_3$time,
+                          n.risk    = fit_3$n.risk,
+                          n.event   = fit_3$n.event,
+                          n.censor  = fit_3$n.censor,
+                          surv      = fit_3$surv,
+                          upper     = fit_3$upper,
+                          lower     = fit_3$lower,
+                          strata    = fit_3$strata
+)
+## Printing some top results of the data frame created
+head(lifetable_3)
+### Turns out this was not needed
+"""
+
+### Didn't work
+
+
+## Creating a survival plot
+ggsurvplot(fit_3,
+           pval = TRUE, 
+           conf.int = FALSE,
+           risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           linetype = "strata", # Change line type by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw() # Change ggplot2 theme
+           #           ,palette = c("#E7B800", "#2E9FDF"
+)
+)
+
+## Creating a cumulative event plot
+ggsurvplot(fit_3,
+           pval = TRUE, 
+           conf.int = FALSE,
+           risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           linetype = "strata", # Change line type by groups
+           surv.median.line = "hv", # Specify median survival
+           ggtheme = theme_bw() # Change ggplot2 theme
+        ,  fun = "event"
+           #           ,palette = c("#E7B800", "#2E9FDF"
+)
+)
+
+## Survival Fit Summary
+surv_summary(fit_3)
+
+## Survival Fit Table
+attr(surv_summary(fit_3), "table")
+
+## Log-Rank Test comparing survival curves
+survdiff(Surv(survt, status) ~ clinic + prison, data = addicts)
 
 
